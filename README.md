@@ -29,3 +29,17 @@ Automatically generate .gitignore files based on project analysis.
    ```
 
 ## Usage
+
+## Uninstallation
+
+Windows:
+```powershell
+# Remove the binary from your PATH
+del C:\Windows\System32\gitignore-gen.exe
+```
+
+Mac/Linux:
+```bash
+# Remove the binary from your PATH
+sudo rm /usr/local/bin/gitignore-gen
+```

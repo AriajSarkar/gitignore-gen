@@ -43,6 +43,21 @@ Uses the gitignore.io API to fetch the latest templates.`,
 	},
 }
 
+var uninstallCmd = &cobra.Command{
+	Use:   "uninstall",
+	Short: "Uninstall gitignore-gen",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		executable, err := os.Executable()
+		if err != nil {
+			return fmt.Errorf("failed to get executable path: %w", err)
+		}
+		
+		fmt.Printf("To uninstall, manually delete the binary at: %s\n", executable)
+		fmt.Println("For more information, visit: https://github.com/AriajSarkar/gitignore-gen#uninstallation")
+		return nil
+	},
+}
+
 func Execute() {
 	err := rootCmd.Execute()
 	if err != nil {
@@ -52,6 +67,7 @@ func Execute() {
 
 func init() {
 	rootCmd.Flags().BoolP("force", "f", false, "Force overwrite existing .gitignore file")
+	rootCmd.AddCommand(uninstallCmd)
 }
 
 func analyzeProject(path string) []string {
