@@ -1,4 +1,4 @@
-module github.com/yourusername/gitignore-gen
+module github.com/AriajSarkar/gitignore-gen
 
 go 1.21
 
