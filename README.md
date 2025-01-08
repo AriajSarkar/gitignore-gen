@@ -65,6 +65,8 @@ gitignore-gen
 
 ## Uninstallation
 
+##### Run `gitignore-gen uninstall` to see the binary location
+
 Windows:
 ```powershell
 # Remove the binary from your PATH
