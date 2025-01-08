@@ -5,6 +5,9 @@ on:
     tags:
       - 'v*'
 
+permissions:
+  contents: write # Add this line for release permissions
+  
 jobs:
   goreleaser:
     runs-on: ubuntu-latest
