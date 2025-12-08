@@ -31,12 +31,12 @@ Automatically generate `.gitignore` files based on project analysis.
 
 **Windows (PowerShell):**
 ```powershell
-iwr https://github.com/AriajSarkar/gitignore-gen/raw/main/scripts/install.ps1 -useb | iex
+iwr https://github.com/AriajSarkar/gitignore-gen/raw/master/scripts/install.ps1 -useb | iex
 ```
 
 **Linux / macOS:**
 ```bash
-curl -fsSL https://github.com/AriajSarkar/gitignore-gen/raw/main/scripts/install.sh | bash
+curl -fsSL https://github.com/AriajSarkar/gitignore-gen/raw/master/scripts/install.sh | bash
 ```
 
 ### Build from Source

@@ -1,5 +1,5 @@
 # gitignore-gen installer
-# Usage: iwr https://github.com/AriajSarkar/gitignore-gen/raw/main/scripts/install.ps1 -useb | iex
+# Usage: iwr https://github.com/AriajSarkar/gitignore-gen/raw/master/scripts/install.ps1 -useb | iex
 $ErrorActionPreference = "Stop"
 
 $Owner = "AriajSarkar"
@@ -23,11 +23,15 @@ $Arch = switch ($RealArch) {
 $Api = "https://api.github.com/repos/$Owner/$Repo/releases/latest"
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 $Release = Invoke-RestMethod -Uri $Api
-$Asset = $Release.assets | Where-Object { $_.name -like "*$Arch-windows*" -and $_.name -notlike "*.sha256" } | Select-Object -First 1
-$ShaAsset = $Release.assets | Where-Object { $_.name -like "*$Arch-windows*.sha256" -or $_.name -like "*checksums*" } | Select-Object -First 1
+
+# Match asset with Windows target triple (e.g., x86_64-pc-windows-msvc)
+$Asset = $Release.assets | Where-Object { $_.name -match "$Arch.*windows" -and $_.name -notlike "*.sha256" } | Select-Object -First 1
+$ShaAsset = $Release.assets | Where-Object { $_.name -like "*checksums*" -or $_.name -like "*sha256*" } | Select-Object -First 1
 
 if (-not $Asset) {
-    Write-Host "❌ No binary for $Arch-windows" -ForegroundColor Red; exit 1
+    Write-Host "❌ No binary found for $Arch on Windows" -ForegroundColor Red
+    Write-Host "   Available: $($Release.assets.name -join ', ')"
+    exit 1
 }
 
 Write-Host "📦 Downloading $($Release.tag_name)..." -ForegroundColor Yellow

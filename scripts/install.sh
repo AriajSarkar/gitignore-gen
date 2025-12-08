@@ -1,6 +1,6 @@
 #!/bin/bash
 # gitignore-gen installer
-# Usage: curl -fsSL https://github.com/AriajSarkar/gitignore-gen/raw/main/scripts/install.sh | bash
+# Usage: curl -fsSL https://github.com/AriajSarkar/gitignore-gen/raw/master/scripts/install.sh | bash
 set -e
 
 OWNER="AriajSarkar"
@@ -10,11 +10,12 @@ DIR="$HOME/.gitignore-gen/bin"
 
 echo "🦀 Installing $APP..."
 
-# Detect platform
+# Detect platform - use target triple patterns
 OS=$(uname -s | tr '[:upper:]' '[:lower:]')
 ARCH=$(uname -m)
 [[ "$ARCH" == "arm64" ]] && ARCH="aarch64"
-[[ "$OS" == "darwin" ]] && OS="darwin" || OS="linux"
+# Map to Rust target patterns
+[[ "$OS" == "darwin" ]] && OS_PATTERN="apple-darwin" || OS_PATTERN="unknown-linux-gnu"
 
 # Fetch release info with error handling
 API="https://api.github.com/repos/$OWNER/$REPO/releases/latest"
@@ -24,20 +25,20 @@ fi
 
 # Parse JSON - use jq if available, fallback to grep
 if command -v jq >/dev/null 2>&1; then
-    URL=$(echo "$JSON" | jq -r ".assets[] | select(.name | contains(\"$ARCH-$OS\") and (contains(\".sha256\") | not)) | .browser_download_url" | head -1)
-    SHA_URL=$(echo "$JSON" | jq -r ".assets[] | select(.name | (contains(\"$ARCH-$OS\") and contains(\".sha256\")) or contains(\"checksums\")) | .browser_download_url" | head -1)
+    URL=$(echo "$JSON" | jq -r ".assets[] | select(.name | contains(\"$ARCH-$OS_PATTERN\") and (contains(\".sha256\") | not)) | .browser_download_url" | head -1)
+    SHA_URL=$(echo "$JSON" | jq -r ".assets[] | select(.name | (contains(\"$ARCH-$OS_PATTERN\") and contains(\".sha256\")) or contains(\"checksums\")) | .browser_download_url" | head -1)
     VER=$(echo "$JSON" | jq -r ".tag_name")
-    ASSET_NAME=$(echo "$JSON" | jq -r ".assets[] | select(.name | contains(\"$ARCH-$OS\") and (contains(\".sha256\") | not)) | .name" | head -1)
+    ASSET_NAME=$(echo "$JSON" | jq -r ".assets[] | select(.name | contains(\"$ARCH-$OS_PATTERN\") and (contains(\".sha256\") | not)) | .name" | head -1)
 else
-    URL=$(echo "$JSON" | grep -o "browser_download_url.*$ARCH-$OS[^\"]*" | grep -v ".sha256" | cut -d'"' -f3 | head -1)
-    SHA_URL=$(echo "$JSON" | grep -o "browser_download_url.*$ARCH-$OS[^\"]*.sha256" | cut -d'"' -f3 | head -1)
+    URL=$(echo "$JSON" | grep -o "browser_download_url.*$ARCH-$OS_PATTERN[^\"]*" | grep -v ".sha256" | cut -d'"' -f3 | head -1)
+    SHA_URL=$(echo "$JSON" | grep -o "browser_download_url.*$ARCH-$OS_PATTERN[^\"]*.sha256" | cut -d'"' -f3 | head -1)
     VER=$(echo "$JSON" | grep -o '"tag_name": "[^"]*"' | cut -d'"' -f4)
     ASSET_NAME=$(basename "$URL" 2>/dev/null || echo "")
 fi
 
 # Validate extracted values
 if [[ -z "$URL" || ! "$URL" =~ ^https?:// ]]; then
-    echo "❌ No binary found for $ARCH-$OS"; exit 1
+    echo "❌ No binary found for $ARCH-$OS_PATTERN"; exit 1
 fi
 if [[ -z "$VER" ]]; then
     echo "❌ Could not determine version"; exit 1
