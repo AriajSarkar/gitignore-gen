@@ -19,9 +19,13 @@ if (-not (Test-Path $InstallDir)) {
 Write-Host "Installing binary..."
 Copy-Item -Force "target\release\$AppName.exe" $ExePath
 
-# Check PATH
+# Check PATH with precise matching (split, normalize, compare)
 $UserPath = [Environment]::GetEnvironmentVariable("Path", "User")
-if ($UserPath -notlike "*$InstallDir*") {
+$PathEntries = $UserPath -split ';' | ForEach-Object { $_.Trim().TrimEnd('\') } | Where-Object { $_ -ne '' }
+$NormalizedInstallDir = $InstallDir.TrimEnd('\')
+$AlreadyInPath = $PathEntries -contains $NormalizedInstallDir
+
+if (-not $AlreadyInPath) {
     Write-Host "Adding $InstallDir to User PATH..." -ForegroundColor Yellow
     [Environment]::SetEnvironmentVariable("Path", "$UserPath;$InstallDir", "User")
     $env:Path += ";$InstallDir"
