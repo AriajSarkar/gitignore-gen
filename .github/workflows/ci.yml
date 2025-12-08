@@ -28,14 +28,14 @@ env:
 
 jobs:
   # ============================================
-  # TIER 1: Auto for Owner/Collaborator/Contributor
+  # TIER 1: Auto for Owner/Collaborator/Member/Contributor
   # ============================================
   ci:
     name: CI
     runs-on: ubuntu-latest
     if: >-
       github.event_name == 'push' ||
-      contains(fromJSON('["OWNER", "COLLABORATOR", "MEMBER"]'), github.event.pull_request.author_association)
+      contains(fromJSON('["OWNER", "COLLABORATOR", "MEMBER", "CONTRIBUTOR"]'), github.event.pull_request.author_association)
     steps:
       - uses: actions/checkout@v4
         with:
@@ -64,14 +64,14 @@ jobs:
       - run: cargo check
 
   # ============================================
-  # TIER 2: Newcomers need approval
+  # TIER 2: Newcomers (first-timers) need approval
   # ============================================
   approve-newcomer:
     name: Approve CI
     runs-on: ubuntu-latest
     if: >-
       github.event_name == 'pull_request' &&
-      contains(fromJSON('["CONTRIBUTOR", "FIRST_TIMER", "FIRST_TIME_CONTRIBUTOR", "NONE"]'), github.event.pull_request.author_association)
+      contains(fromJSON('["FIRST_TIMER", "FIRST_TIME_CONTRIBUTOR", "NONE"]'), github.event.pull_request.author_association)
     environment: ci-approval
     steps:
       - run: echo "Newcomer CI approved"
