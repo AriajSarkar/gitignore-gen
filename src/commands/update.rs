@@ -4,6 +4,7 @@
 //! without requiring cargo or any build tools.
 
 use serde::Deserialize;
+use sha2::{Digest, Sha256};
 use std::{env, fs, io::Write, path::PathBuf};
 
 /// Repository information parsed from Cargo.toml at compile time.
@@ -46,10 +47,73 @@ pub fn update() -> Result<(), String> {
     println!("  Downloading {}...", asset.name);
     let binary = download(&asset.browser_download_url)?;
 
+    // Verify checksum before installing
+    println!("  Verifying checksum...");
+    verify_checksum(&binary, &asset.name, &release.assets)?;
+
     println!("  Installing...");
     install_binary(&binary)?;
 
     println!("\n✓ Updated to {}!", release.tag_name);
+    Ok(())
+}
+
+// ============================================================================
+// Checksum Verification
+// ============================================================================
+
+/// Verify the SHA-256 checksum of the downloaded binary.
+/// Returns an error if no checksum file is found (security requirement).
+fn verify_checksum(binary: &[u8], asset_name: &str, assets: &[Asset]) -> Result<(), String> {
+    // Look for checksum file with strict matching
+    // Matches: SHA256SUMS, checksums.txt, *.sha256, *.sha256sum
+    let checksum_asset = assets.iter().find(|a| {
+        let name = a.name.to_lowercase();
+        name == "sha256sums"
+            || name == "checksums.txt"
+            || name == "checksums.sha256"
+            || name.ends_with(".sha256")
+            || name.ends_with(".sha256sum")
+    });
+
+    let checksum_asset = checksum_asset.ok_or_else(|| {
+        "No checksum file found in release. Update aborted for security.".to_string()
+    })?;
+
+    // Download checksum file
+    let checksum_content = download(&checksum_asset.browser_download_url)
+        .map_err(|e| format!("Failed to download checksum file: {e}"))?;
+
+    // Strict UTF-8 validation
+    let checksum_text = String::from_utf8(checksum_content)
+        .map_err(|e| format!("Checksum file contains invalid UTF-8: {e}"))?;
+
+    // Parse checksum file with exact filename matching
+    // Format: "checksum  filename" or "checksum filename"
+    let expected = checksum_text
+        .lines()
+        .find_map(|line| {
+            let mut parts = line.split_whitespace();
+            let checksum = parts.next()?;
+            let filename = parts.next()?;
+            // Exact match required
+            (filename == asset_name).then_some(checksum)
+        })
+        .ok_or_else(|| format!("Checksum for '{}' not found in checksum file", asset_name))?;
+
+    // Compute actual checksum
+    let mut hasher = Sha256::new();
+    hasher.update(binary);
+    let actual = format!("{:x}", hasher.finalize());
+
+    if actual.to_lowercase() != expected.to_lowercase() {
+        return Err(format!(
+            "Checksum mismatch!\n  Expected: {}\n  Actual:   {}",
+            expected, actual
+        ));
+    }
+
+    println!("  ✓ Checksum verified");
     Ok(())
 }
 
@@ -81,8 +145,10 @@ impl Platform {
     }
 
     fn matches(&self, asset_name: &str) -> bool {
+        // Use single pattern like "{arch}-{os}" for matching
+        let pattern = format!("{}-{}", self.arch, self.os);
         let name = asset_name.to_lowercase();
-        name.contains(self.os) && name.contains(self.arch)
+        name.contains(&pattern) && !name.contains("sha256")
     }
 }
 
@@ -134,9 +200,15 @@ fn download(url: &str) -> Result<Vec<u8>, String> {
 }
 
 fn http_client() -> Result<reqwest::blocking::Client, String> {
+    // Configurable timeout via GITIGNORE_GEN_HTTP_TIMEOUT env var (in seconds)
+    let timeout_secs = std::env::var("GITIGNORE_GEN_HTTP_TIMEOUT")
+        .ok()
+        .and_then(|s| s.parse::<u64>().ok())
+        .unwrap_or(60);
+
     reqwest::blocking::Client::builder()
         .user_agent(concat!("gitignore-gen/", env!("CARGO_PKG_VERSION")))
-        .timeout(std::time::Duration::from_secs(60))
+        .timeout(std::time::Duration::from_secs(timeout_secs))
         .build()
         .map_err(|e| format!("HTTP client error: {e}"))
 }
@@ -161,15 +233,23 @@ fn install_binary(binary: &[u8]) -> Result<(), String> {
 fn windows_install(binary: &[u8], target: &PathBuf) -> Result<(), String> {
     let backup = target.with_extension("exe.old");
 
-    // Remove old backup, rename current, write new, cleanup
-    let _ = fs::remove_file(&backup);
+    // Remove old backup (log errors instead of ignoring)
+    if let Err(e) = fs::remove_file(&backup) {
+        if e.kind() != std::io::ErrorKind::NotFound {
+            eprintln!("Warning: Could not remove old backup {:?}: {}", backup, e);
+        }
+    }
+
     fs::rename(target, &backup).map_err(|e| format!("Backup failed: {e}"))?;
 
     fs::File::create(target)
         .and_then(|mut f| f.write_all(binary))
         .map_err(|e| format!("Install failed: {e}"))?;
 
-    let _ = fs::remove_file(&backup);
+    // Cleanup backup (log errors instead of ignoring)
+    if let Err(e) = fs::remove_file(&backup) {
+        eprintln!("Warning: Could not cleanup backup {:?}: {}", backup, e);
+    }
     Ok(())
 }
 
