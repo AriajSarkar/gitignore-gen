@@ -6,14 +6,18 @@ Thank you for your interest in contributing! This document provides guidelines a
 
 ### Prerequisites
 
-- [Rust](https://rustup.rs/) (latest stable, MSRV: 1.75.0)
+- [Rust](https://rustup.rs/) (latest stable, MSRV: 1.83.0)
 - Git
 
 ### Getting Started
 
+Please read the detailed guides in the `docs/` folder:
+- [Building Guide](docs/BUILDING.md) - Instructions for cloning with submodules and building from source
+- [Architecture](docs/ARCHITECTURE.md) - Overview of the code structure and module system
+
 ```bash
-# Clone the repository
-git clone https://github.com/AriajSarkar/gitignore-gen.git
+# Clone the repository (recursive for templates submodule)
+git clone --recursive https://github.com/AriajSarkar/gitignore-gen.git
 cd gitignore-gen
 
 # Build the project

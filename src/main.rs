@@ -1,76 +1,66 @@
 mod analyzer;
-mod fetcher;
+mod commands;
+mod templates;
 
 use clap::{Parser, Subcommand};
-use std::env;
-use std::fs;
 use std::process;
 
 #[derive(Parser)]
 #[command(name = "gitignore-gen")]
+#[command(version)]
 #[command(about = "Generate .gitignore files based on project analysis")]
-#[command(
-    long_about = "A CLI tool that analyzes your project structure and generates\nappropriate .gitignore files by detecting technologies and frameworks.\nUses the gitignore.io API to fetch the latest templates."
-)]
+#[command(long_about = "A CLI tool that analyzes your project structure and generates
+appropriate .gitignore files by detecting technologies and frameworks.
+
+Examples:
+  gitignore-gen              # Auto-detect and generate
+  gitignore-gen rust node    # Generate for specific technologies
+  gitignore-gen --list       # Show available templates")]
 struct Cli {
     #[command(subcommand)]
     command: Option<Commands>,
 
+    /// Technologies to include (e.g., rust, node, python)
+    #[arg(value_name = "TECH")]
+    technologies: Vec<String>,
+
     /// Force overwrite existing .gitignore file
     #[arg(short, long)]
     force: bool,
+
+    /// List available templates
+    #[arg(short, long)]
+    list: bool,
 }
 
 #[derive(Subcommand)]
 enum Commands {
-    /// Show the binary location for uninstallation
+    /// Uninstall gitignore-gen (removes the binary)
     Uninstall,
+    /// Check for updates
+    Update,
 }
 
 fn main() {
     let cli = Cli::parse();
 
-    match &cli.command {
-        Some(Commands::Uninstall) => match env::current_exe() {
-            Ok(path) => {
-                println!("To uninstall, manually delete the binary at: {}", path.display());
-                println!("For more information, visit: https://github.com/AriajSarkar/gitignore-gen#uninstallation");
-            }
-            Err(e) => {
-                eprintln!("Failed to get executable path: {}", e);
-                process::exit(1);
-            }
-        },
-        None => {
-            // Main command: analyze and generate .gitignore
-            let path = match env::current_dir() {
-                Ok(p) => p,
-                Err(e) => {
-                    eprintln!("Failed to get current directory: {}", e);
-                    process::exit(1);
-                }
-            };
-
-            let detected = analyzer::analyze_project(&path);
-            if detected.is_empty() {
-                eprintln!("No supported technologies detected in the project");
-                process::exit(1);
-            }
-
-            let content = match fetcher::fetch_gitignore_template(&detected) {
-                Ok(c) => c,
-                Err(e) => {
-                    eprintln!("Failed to fetch gitignore template: {}", e);
-                    process::exit(1);
-                }
-            };
-
-            if let Err(e) = fs::write(".gitignore", &content) {
-                eprintln!("Failed to write .gitignore file: {}", e);
-                process::exit(1);
-            }
-
-            println!("Generated .gitignore file for: {}", detected.join(", "));
+    // Handle --list flag
+    if cli.list {
+        println!("Available templates:");
+        for template in templates::list_templates() {
+            println!("  - {}", template);
         }
+        return;
+    }
+
+    let result = match &cli.command {
+        Some(Commands::Uninstall) => commands::uninstall(),
+        Some(Commands::Update) => commands::update(),
+        None => commands::generate(cli.force, &cli.technologies),
+    };
+
+    if let Err(e) = result {
+        eprintln!("Error: {}", e);
+        process::exit(1);
     }
 }
