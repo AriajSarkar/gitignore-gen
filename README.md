@@ -3,7 +3,7 @@
 [![CI](https://github.com/AriajSarkar/gitignore-gen/actions/workflows/ci.yml/badge.svg)](https://github.com/AriajSarkar/gitignore-gen/actions/workflows/ci.yml)
 [![Release](https://github.com/AriajSarkar/gitignore-gen/actions/workflows/release.yml/badge.svg)](https://github.com/AriajSarkar/gitignore-gen/releases)
 [![License](https://img.shields.io/badge/license-MIT%2FApache--2.0-blue.svg)](LICENSE-MIT)
-[![MSRV](https://img.shields.io/badge/MSRV-1.82.0-orange.svg)](https://www.rust-lang.org/)
+[![MSRV](https://img.shields.io/badge/MSRV-1.83.0-orange.svg)](https://www.rust-lang.org/)
 
 Automatically generate `.gitignore` files based on project analysis.
 
@@ -57,7 +57,7 @@ Automatically generate `.gitignore` files based on project analysis.
 cargo install --git https://github.com/AriajSarkar/gitignore-gen
 ```
 
-**Minimum Supported Rust Version (MSRV):** 1.82.0
+**Minimum Supported Rust Version (MSRV):** 1.83.0
 
 ## Usage
 
