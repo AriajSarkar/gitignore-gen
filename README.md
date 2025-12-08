@@ -27,37 +27,23 @@ Automatically generate `.gitignore` files based on project analysis.
 
 ## Installation
 
-### Pre-built Binaries (Recommended)
+### One-Line Install (Recommended)
 
-1. Go to [Releases](https://github.com/AriajSarkar/gitignore-gen/releases)
-2. Download the binary for your platform:
-   - **Linux**: `gitignore-gen-x86_64-unknown-linux-gnu.tar.gz`
-   - **Windows**: `gitignore-gen-x86_64-pc-windows-msvc.zip`
-   - **macOS (Intel)**: `gitignore-gen-x86_64-apple-darwin.tar.gz`
-   - **macOS (Apple Silicon)**: `gitignore-gen-aarch64-apple-darwin.tar.gz`
+**Windows (PowerShell):**
+```powershell
+iwr https://github.com/AriajSarkar/gitignore-gen/raw/main/scripts/install.ps1 -useb | iex
+```
 
-3. Extract and install:
-
-   **Windows (PowerShell):**
-   ```powershell
-   Expand-Archive gitignore-gen-x86_64-pc-windows-msvc.zip -DestinationPath .
-   Move-Item gitignore-gen.exe C:\Windows\System32\
-   ```
-
-   **macOS/Linux:**
-   ```bash
-   tar -xzf gitignore-gen-*.tar.gz
-   chmod +x gitignore-gen
-   sudo mv gitignore-gen /usr/local/bin/
-   ```
+**Linux / macOS:**
+```bash
+curl -fsSL https://github.com/AriajSarkar/gitignore-gen/raw/main/scripts/install.sh | bash
+```
 
 ### Build from Source
-
+If you have Rust installed:
 ```bash
 cargo install --git https://github.com/AriajSarkar/gitignore-gen
 ```
-
-**Minimum Supported Rust Version (MSRV):** 1.83.0
 
 ## Usage
 
