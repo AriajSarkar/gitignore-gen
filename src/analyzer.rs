@@ -208,66 +208,79 @@ const DETECTION_RULES: &[DetectionRule] = &[
 /// Analyzes a project directory and returns detected technologies.
 ///
 /// Walks the directory tree and matches files/directories against detection rules.
-/// Automatically skips hidden directories, submodules, and build outputs.
+/// Automatically skips hidden directories, submodules, and build outputs after detecting.
 pub fn analyze_project(path: &Path) -> Vec<String> {
-    let mut detected = HashSet::new();
+    use std::cell::RefCell;
+
+    let detected = RefCell::new(HashSet::new());
     let max_depth = 3;
 
-    for entry in WalkDir::new(path)
-        .max_depth(max_depth)
-        .into_iter()
-        .filter_entry(should_visit)
-        .filter_map(Result::ok)
-    {
+    let walker = WalkDir::new(path).max_depth(max_depth).into_iter();
+
+    for entry in walker.filter_entry(|e| should_visit(e, &detected)).filter_map(Result::ok) {
         let name = entry.file_name().to_string_lossy();
         let is_dir = entry.file_type().is_dir();
 
+        // Get relative path for path-based pattern matching
+        let rel_path = entry
+            .path()
+            .strip_prefix(path)
+            .map(|p| p.to_string_lossy().replace('\\', "/"))
+            .unwrap_or_default();
+
         for rule in DETECTION_RULES {
-            if matches_rule(rule, &name, is_dir) {
-                detected.insert(rule.name.to_string());
+            if matches_rule(rule, &name, &rel_path, is_dir) {
+                detected.borrow_mut().insert(rule.name.to_string());
             }
         }
     }
 
-    let mut result: Vec<_> = detected.into_iter().collect();
+    let mut result: Vec<_> = detected.into_inner().into_iter().collect();
     result.sort();
     result
 }
 
-/// Smart directory filter - skips directories that shouldn't be part of project detection.
-fn should_visit(entry: &walkdir::DirEntry) -> bool {
+/// Build output directories that indicate specific technologies
+const BUILD_DIR_TECH: &[(&str, &str)] = &[
+    ("target", "Rust"),
+    ("node_modules", "Node"),
+    ("__pycache__", "Python"),
+    // Note: "vendor" removed - ambiguous (Go/PHP/Ruby). Rely on go.mod detection.
+    ("_build", "Elixir"),
+    ("deps", "Elixir"),
+];
+
+/// Smart directory filter - detects technology from build dirs, then skips them.
+fn should_visit(entry: &walkdir::DirEntry, detected: &std::cell::RefCell<HashSet<String>>) -> bool {
     // Always visit files
     if !entry.file_type().is_dir() {
         return true;
     }
 
     let name = entry.file_name().to_string_lossy();
+    let lower = name.to_lowercase();
 
     // Skip hidden directories (start with .)
     if name.starts_with('.') && entry.depth() > 0 {
         return false;
     }
 
-    // Skip if directory contains a .git file (submodule indicator)
+    // Skip submodules
     let git_file = entry.path().join(".git");
     if git_file.exists() && entry.depth() > 0 {
         return false;
     }
 
-    // Skip common build/dependency outputs by pattern
-    let lower = name.to_lowercase();
-    if matches!(
-        lower.as_str(),
-        "node_modules"
-            | "target"
-            | "build"
-            | "dist"
-            | "out"
-            | "__pycache__"
-            | "vendor"
-            | "deps"
-            | "_build"
-    ) {
+    // Detect technology from build directories, then skip them
+    for (dir, tech) in BUILD_DIR_TECH {
+        if lower == *dir {
+            detected.borrow_mut().insert(tech.to_string());
+            return false; // Skip traversal but we detected!
+        }
+    }
+
+    // Skip other common build outputs
+    if matches!(lower.as_str(), "build" | "dist" | "out") {
         return false;
     }
 
@@ -275,13 +288,30 @@ fn should_visit(entry: &walkdir::DirEntry) -> bool {
 }
 
 /// Check if a file/directory matches a detection rule.
-fn matches_rule(rule: &DetectionRule, name: &str, is_dir: bool) -> bool {
+/// Supports both base-name matching and path-based patterns (e.g., "config/routes.rb").
+fn matches_rule(rule: &DetectionRule, name: &str, rel_path: &str, is_dir: bool) -> bool {
     if is_dir {
-        rule.directories.contains(&name)
+        // Check directory name
+        if rule.directories.contains(&name) {
+            return true;
+        }
+        // Check if relative path ends with any directory pattern (e.g., "app/controllers")
+        for dir_pattern in rule.directories {
+            if dir_pattern.contains('/') && rel_path.ends_with(dir_pattern) {
+                return true;
+            }
+        }
+        false
     } else {
-        // Check exact file matches
+        // Check exact file matches by name
         if rule.files.contains(&name) {
             return true;
+        }
+        // Check path-based patterns (e.g., "config/routes.rb")
+        for file_pattern in rule.files {
+            if file_pattern.contains('/') && rel_path.ends_with(file_pattern) {
+                return true;
+            }
         }
         // Check extension matches
         if let Some(ext) = name.rsplit('.').next() {
