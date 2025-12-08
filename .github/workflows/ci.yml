@@ -1,0 +1,146 @@
+name: CI
+
+on:
+  push:
+    branches: [master, dev]
+    paths-ignore:
+      - '**.md'
+      - '.gitignore'
+      - 'LICENSE-*'
+      - '.editorconfig'
+      - '.github/ISSUE_TEMPLATE/**'
+      - '.github/pull_request_template.md'
+      - '.github/CODEOWNERS'
+  pull_request:
+    branches: [master, dev]
+    paths-ignore:
+      - '**.md'
+      - '.gitignore'
+      - 'LICENSE-*'
+      - '.editorconfig'
+      - '.github/ISSUE_TEMPLATE/**'
+      - '.github/pull_request_template.md'
+      - '.github/CODEOWNERS'
+
+env:
+  CARGO_TERM_COLOR: always
+  RUSTFLAGS: -Dwarnings
+
+jobs:
+  # ============================================
+  # TIER 1: Basic Linux test (auto for contributors+)
+  # ============================================
+  linux-test:
+    name: Linux Test
+    runs-on: ubuntu-latest
+    # Auto-run for: owner, collaborator, contributor
+    # Newcomers need approval via separate job
+    if: >-
+      github.event_name == 'push' ||
+      contains(fromJSON('["OWNER", "COLLABORATOR", "MEMBER", "CONTRIBUTOR"]'), github.event.pull_request.author_association)
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo test
+
+  # ============================================
+  # TIER 2: Full CI (auto for collaborators+)
+  # ============================================
+  check:
+    name: Check (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    needs: linux-test
+    if: >-
+      github.event_name == 'push' ||
+      contains(fromJSON('["OWNER", "COLLABORATOR", "MEMBER"]'), github.event.pull_request.author_association)
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo fmt --check
+      - run: cargo clippy --all-targets
+      - run: cargo test
+
+  msrv:
+    name: MSRV (1.70.0)
+    runs-on: ubuntu-latest
+    needs: linux-test
+    if: >-
+      github.event_name == 'push' ||
+      contains(fromJSON('["OWNER", "COLLABORATOR", "MEMBER"]'), github.event.pull_request.author_association)
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.70.0
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo check
+
+  # ============================================
+  # TIER 3: Approval required for contributors (full CI)
+  # ============================================
+  approve-contributor-full-ci:
+    name: Approve Full CI (Contributor)
+    runs-on: ubuntu-latest
+    if: >-
+      github.event_name == 'pull_request' &&
+      github.event.pull_request.author_association == 'CONTRIBUTOR'
+    environment: ci-approval
+    steps:
+      - run: echo "Full CI approved for contributor"
+
+  check-contributor:
+    name: Check Contributor (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    needs: [linux-test, approve-contributor-full-ci]
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo fmt --check
+      - run: cargo clippy --all-targets
+      - run: cargo test
+
+  msrv-contributor:
+    name: MSRV Contributor (1.70.0)
+    runs-on: ubuntu-latest
+    needs: [linux-test, approve-contributor-full-ci]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.70.0
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo check
+
+  # ============================================
+  # TIER 4: Newcomers need approval for ALL CI
+  # ============================================
+  approve-newcomer:
+    name: Approve Newcomer CI
+    runs-on: ubuntu-latest
+    if: >-
+      github.event_name == 'pull_request' &&
+      contains(fromJSON('["FIRST_TIMER", "FIRST_TIME_CONTRIBUTOR", "NONE"]'), github.event.pull_request.author_association)
+    environment: ci-newcomer
+    steps:
+      - run: echo "Newcomer CI approved"
+
+  linux-test-newcomer:
+    name: Linux Test (Newcomer)
+    runs-on: ubuntu-latest
+    needs: approve-newcomer
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo test

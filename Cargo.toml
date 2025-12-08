@@ -1,0 +1,21 @@
+[package]
+name = "gitignore-gen"
+version = "0.1.0"
+edition = "2021"
+description = "Generate .gitignore files based on project analysis"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/AriajSarkar/gitignore-gen"
+keywords = ["gitignore", "cli", "generator"]
+categories = ["command-line-utilities", "development-tools"]
+
+[[bin]]
+name = "gitignore-gen"
+path = "src/main.rs"
+
+[dependencies]
+clap = { version = "4", features = ["derive"] }
+reqwest = { version = "0.12", features = ["blocking"] }
+walkdir = "2"
+
+[dev-dependencies]
+tempfile = "3"

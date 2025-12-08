@@ -1,0 +1,15 @@
+# CODEOWNERS - Auto-assign reviewers for PRs
+# https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Default owner for everything
+* @AriajSarkar
+
+# Rust source code
+/src/ @AriajSarkar
+
+# GitHub workflows and configs
+/.github/ @AriajSarkar
+
+# Build and dependencies
+/Cargo.toml @AriajSarkar
+/Cargo.lock @AriajSarkar
