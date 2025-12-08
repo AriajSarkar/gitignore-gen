@@ -1,2 +1,20 @@
+# Rust Toolchain Configuration
+# https://rust-lang.github.io/rustup/overrides.html#the-toolchain-file
+#
+# This file pins the Rust version for consistent builds across all environments.
+# 
+# Usage:
+#   - Development: Uses stable channel with fmt/clippy
+#   - Nightly features: Uncomment the [toolchain.nightly] section below
+#   - CI: Respects this file automatically
+
 [toolchain]
-channel = "1.90.0"
+channel = "stable"
+components = ["rustfmt", "clippy", "rust-analyzer"]
+profile = "default"
+
+# Uncomment for nightly features (e.g., rustfmt unstable options)
+# [toolchain]
+# channel = "nightly"
+# components = ["rustfmt", "clippy", "rust-analyzer", "miri"]
+# profile = "default"
