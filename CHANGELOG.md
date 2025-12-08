@@ -13,7 +13,6 @@ and [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/).
 - Initial Rust port of gitignore-gen CLI
 - Automatic project analysis for technology detection
 - Fetch gitignore templates from GitHub API
-- Support for Rust, Go, Node.js, Python, Java, and Maven projects
 - Multi-platform support (Linux, Windows, macOS)
 
 ### 📚 Documentation

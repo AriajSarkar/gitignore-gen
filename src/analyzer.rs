@@ -244,7 +244,7 @@ fn should_visit(entry: &walkdir::DirEntry) -> bool {
     let name = entry.file_name().to_string_lossy();
 
     // Skip hidden directories (start with .)
-    if name.starts_with('.') {
+    if name.starts_with('.') && entry.depth() > 0 {
         return false;
     }
 
@@ -277,15 +277,15 @@ fn should_visit(entry: &walkdir::DirEntry) -> bool {
 /// Check if a file/directory matches a detection rule.
 fn matches_rule(rule: &DetectionRule, name: &str, is_dir: bool) -> bool {
     if is_dir {
-        rule.directories.iter().any(|d| *d == name)
+        rule.directories.contains(&name)
     } else {
         // Check exact file matches
-        if rule.files.iter().any(|f| *f == name) {
+        if rule.files.contains(&name) {
             return true;
         }
         // Check extension matches
         if let Some(ext) = name.rsplit('.').next() {
-            if rule.extensions.iter().any(|e| *e == ext) {
+            if rule.extensions.contains(&ext) {
                 return true;
             }
         }
