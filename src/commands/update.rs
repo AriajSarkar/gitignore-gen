@@ -122,16 +122,18 @@ fn verify_checksum(binary: &[u8], asset_name: &str, assets: &[Asset]) -> Result<
 // ============================================================================
 
 struct Platform {
-    os: &'static str,
+    /// Target pattern to match in asset names (e.g., "pc-windows-msvc", "apple-darwin")
+    target_pattern: &'static str,
     arch: &'static str,
 }
 
 impl Platform {
     fn detect() -> Result<Self, String> {
-        let os = match () {
-            _ if cfg!(target_os = "windows") => "windows",
-            _ if cfg!(target_os = "macos") => "darwin",
-            _ if cfg!(target_os = "linux") => "linux",
+        // Use target triple patterns that match release asset names
+        let target_pattern = match () {
+            _ if cfg!(target_os = "windows") => "pc-windows-msvc",
+            _ if cfg!(target_os = "macos") => "apple-darwin",
+            _ if cfg!(target_os = "linux") => "unknown-linux-gnu",
             _ => return Err("Unsupported operating system".into()),
         };
 
@@ -141,14 +143,13 @@ impl Platform {
             _ => return Err("Unsupported architecture".into()),
         };
 
-        Ok(Self { os, arch })
+        Ok(Self { target_pattern, arch })
     }
 
     fn matches(&self, asset_name: &str) -> bool {
-        // Use single pattern like "{arch}-{os}" for matching
-        let pattern = format!("{}-{}", self.arch, self.os);
+        // Match pattern like "x86_64-pc-windows-msvc" or "aarch64-apple-darwin"
         let name = asset_name.to_lowercase();
-        name.contains(&pattern) && !name.contains("sha256")
+        name.contains(self.arch) && name.contains(self.target_pattern) && !name.contains("sha256")
     }
 }
 
@@ -183,7 +184,7 @@ fn find_asset<'a>(assets: &'a [Asset], platform: &Platform) -> Result<&'a Asset,
         format!(
             "No binary found for {}-{}. Available: {}",
             platform.arch,
-            platform.os,
+            platform.target_pattern,
             assets.iter().map(|a| a.name.as_str()).collect::<Vec<_>>().join(", ")
         )
     })
