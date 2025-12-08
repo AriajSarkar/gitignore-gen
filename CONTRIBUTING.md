@@ -6,7 +6,7 @@ Thank you for your interest in contributing! This document provides guidelines a
 
 ### Prerequisites
 
-- [Rust](https://rustup.rs/) (latest stable, MSRV: 1.75.0)
+- [Rust](https://rustup.rs/) (latest stable, MSRV: 1.82.0)
 - Git
 
 ### Getting Started
