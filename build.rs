@@ -80,6 +80,8 @@ fn generate_templates_file(out_dir: &str, templates: &[(String, String)]) {
         "pub static TEMPLATES: Lazy<HashMap<&'static str, &'static str>> = Lazy::new(|| {{"
     )
     .unwrap();
+
+    writeln!(file, "    #[allow(unused_mut)]").unwrap();
     writeln!(file, "    let mut m = HashMap::new();").unwrap();
 
     for (name, path) in templates {
