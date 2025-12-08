@@ -20,11 +20,15 @@ pub fn uninstall() -> Result<(), String> {
     #[cfg(windows)]
     {
         // On Windows, schedule deletion after process exits
-        // Using a simple approach: spawn a delayed delete command
+        // Pass path as encoded argument to avoid injection and handle special characters
         use std::process::Command;
 
-        let exe_str = exe_path.to_string_lossy();
-        let script = format!("Start-Sleep -Seconds 1; Remove-Item -Force '{}'", exe_str);
+        // Escape single quotes by doubling them for PowerShell literal strings
+        let exe_str = exe_path.to_string_lossy().replace("'", "''");
+
+        // Use -LiteralPath to handle paths with special characters safely
+        let script =
+            format!("Start-Sleep -Seconds 1; Remove-Item -LiteralPath '{}' -Force", exe_str);
 
         Command::new("powershell")
             .args(["-WindowStyle", "Hidden", "-Command", &script])
