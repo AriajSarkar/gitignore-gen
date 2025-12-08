@@ -46,9 +46,10 @@ fi
 
 echo "📦 Downloading $VER..."
 mkdir -p "$DIR"
-TEMP_FILE="$DIR/$APP.tmp"
+TEMP_TAR="$DIR/$APP.tar.gz"
+TEMP_EXTRACT="$DIR/extract-tmp"
 
-if ! curl -fsSL "$URL" -o "$TEMP_FILE"; then
+if ! curl -fsSL "$URL" -o "$TEMP_TAR"; then
     echo "❌ Download failed"; exit 1
 fi
 
@@ -65,16 +66,16 @@ if [[ -n "$SHA_URL" && "$SHA_URL" =~ ^https?:// ]]; then
         if [[ -n "$EXPECTED" ]]; then
             # Handle both sha256sum (Linux) and shasum (macOS)
             if command -v sha256sum >/dev/null 2>&1; then
-                ACTUAL=$(sha256sum "$TEMP_FILE" | awk '{print $1}')
+                ACTUAL=$(sha256sum "$TEMP_TAR" | awk '{print $1}')
             elif command -v shasum >/dev/null 2>&1; then
-                ACTUAL=$(shasum -a 256 "$TEMP_FILE" | awk '{print $1}')
+                ACTUAL=$(shasum -a 256 "$TEMP_TAR" | awk '{print $1}')
             else
                 echo "⚠️  No checksum utility found, skipping verification"
                 ACTUAL="$EXPECTED"
             fi
             
             if [[ "${EXPECTED,,}" != "${ACTUAL,,}" ]]; then
-                rm -f "$TEMP_FILE"
+                rm -f "$TEMP_TAR"
                 echo "❌ Checksum mismatch!"
                 echo "   Expected: $EXPECTED"
                 echo "   Actual:   $ACTUAL"
@@ -91,9 +92,19 @@ else
     echo "⚠️  No checksum file found, skipping verification"
 fi
 
-# Install
-mv "$TEMP_FILE" "$DIR/$APP"
+# Extract and install
+rm -rf "$TEMP_EXTRACT"
+mkdir -p "$TEMP_EXTRACT"
+tar -xzf "$TEMP_TAR" -C "$TEMP_EXTRACT"
+EXTRACTED_BIN=$(find "$TEMP_EXTRACT" -name "gitignore-gen" -type f | head -1)
+if [[ -z "$EXTRACTED_BIN" ]]; then
+    echo "❌ No executable found in archive"
+    rm -rf "$TEMP_TAR" "$TEMP_EXTRACT"
+    exit 1
+fi
+mv "$EXTRACTED_BIN" "$DIR/$APP"
 chmod +x "$DIR/$APP"
+rm -rf "$TEMP_TAR" "$TEMP_EXTRACT"
 
 # Update PATH - use $SHELL to detect user's default shell (not current script runner)
 if [[ ":$PATH:" != *":$DIR:"* ]]; then

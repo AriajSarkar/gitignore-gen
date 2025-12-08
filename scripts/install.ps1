@@ -39,7 +39,23 @@ Write-Host "📦 Downloading $($Release.tag_name)..." -ForegroundColor Yellow
 # Install directory
 if (-not (Test-Path $Dir)) { New-Item -ItemType Directory -Path $Dir -Force | Out-Null }
 $ExePath = "$Dir\$App.exe"
-Invoke-WebRequest -Uri $Asset.browser_download_url -OutFile $ExePath
+
+# Download to temp file
+$TempZip = "$env:TEMP\gitignore-gen.zip"
+$TempDir = "$env:TEMP\gitignore-gen-extract"
+Invoke-WebRequest -Uri $Asset.browser_download_url -OutFile $TempZip
+
+# Extract and install
+if (Test-Path $TempDir) { Remove-Item $TempDir -Recurse -Force }
+Expand-Archive -Path $TempZip -DestinationPath $TempDir -Force
+$ExtractedExe = Get-ChildItem -Path $TempDir -Filter "*.exe" -Recurse | Select-Object -First 1
+if (-not $ExtractedExe) {
+    Write-Host "❌ No executable found in archive" -ForegroundColor Red
+    exit 1
+}
+Copy-Item -Path $ExtractedExe.FullName -Destination $ExePath -Force
+Remove-Item $TempZip -Force
+Remove-Item $TempDir -Recurse -Force
 
 # Verify checksum
 if ($ShaAsset) {
