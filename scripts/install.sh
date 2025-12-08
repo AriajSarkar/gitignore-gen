@@ -114,7 +114,7 @@ if [[ ":$PATH:" != *":$DIR:"* ]]; then
     fi
     
     if [[ -n "$RC" ]]; then
-        if echo -e "\nexport PATH=\"\$PATH:$DIR\"" >> "$RC" 2>/dev/null; then
+        if printf "\nexport PATH=\"\$PATH:$DIR\"" >> "$RC" 2>/dev/null; then
             echo "📝 Added to $RC (restart shell to use)"
         else
             echo "⚠️  Could not update $RC. Add manually:"
