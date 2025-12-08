@@ -56,7 +56,7 @@ gitignore-gen
 
 1. **Scan** - Analyzes your project directory for technology markers
 2. **Detect** - Identifies languages and frameworks from file patterns
-3. **Fetch** - Downloads official templates from [github/gitignore](https://github.com/github/gitignore)
+3. **Match** - Finds templates from embedded [github/gitignore](https://github.com/github/gitignore) collection
 4. **Generate** - Combines templates and writes `.gitignore`
 
 ## Contributing
@@ -65,15 +65,11 @@ Contributions are welcome! Please read our [Contributing Guide](CONTRIBUTING.md)
 
 ## Uninstallation
 
-**Windows:**
-```powershell
-Remove-Item C:\Windows\System32\gitignore-gen.exe
+```bash
+gitignore-gen uninstall
 ```
 
-**macOS/Linux:**
-```bash
-sudo rm /usr/local/bin/gitignore-gen
-```
+This will automatically remove the binary from your system.
 
 ## License
 
