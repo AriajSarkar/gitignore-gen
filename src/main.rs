@@ -8,6 +8,7 @@ use std::process;
 #[derive(Parser)]
 #[command(name = "gitignore-gen")]
 #[command(version)]
+#[command(disable_version_flag = true)]
 #[command(about = "Generate .gitignore files based on project analysis")]
 #[command(long_about = "A CLI tool that analyzes your project structure and generates
 appropriate .gitignore files by detecting technologies and frameworks.
@@ -31,6 +32,10 @@ struct Cli {
     /// List available templates
     #[arg(short, long)]
     list: bool,
+
+    /// Print version
+    #[arg(short = 'v', long = "version", action = clap::ArgAction::Version)]
+    version: (),
 }
 
 #[derive(Subcommand)]
